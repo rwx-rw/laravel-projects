@@ -14,11 +14,13 @@ use Override;
 class SendVerificationRequest extends FormRequest
 {
     public ContactType $contactType;
+    public VerificationActionType $action;
 
     #[Override]
     public function prepareForValidation()
     {
         $this->contactType = ContactType::detectContactType($this->input('contact') ?? '');
+        $this->action = VerificationActionType::tryFrom($this->input('action') ?? '');
     }
 
     /**
@@ -44,7 +46,7 @@ class SendVerificationRequest extends FormRequest
 
     protected function getContactValidationRules(): array
     {
-        $verificationAction = VerificationActionType::tryFrom($this->input('action'));
+        $verificationAction = $this->action;
 
         if (! $verificationAction) {
             return [];
@@ -76,7 +78,7 @@ class SendVerificationRequest extends FormRequest
                 }
 
                 $contact = $this->input('contact');
-                $action = VerificationActionType::tryFrom($this->input('action'));
+                $action = $this->action;
                 $contactType = $this->contactType;
 
                 $retryTime = (new VerificationCodeService)->getRetryTime($contact, $action, $contactType);
