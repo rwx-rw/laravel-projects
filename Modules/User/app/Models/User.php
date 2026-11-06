@@ -9,13 +9,15 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+use Modules\Auth\Enums\ContactType;
 
-#[Fillable(['name', 'email', 'phone', 'password'])]
+#[Fillable(['name', 'email', 'phone', 'password','email_verified_at','phone_verified_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable,HasApiTokens;
 
     /**
      * Get the attributes that should be cast.
@@ -29,5 +31,17 @@ class User extends Authenticatable
             'phone_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function verifiedContact(ContactType $contactType){
+        $dataVerification = [];
+        if($contactType === ContactType::EMAIL && is_null($this->email_verified_at)){
+            $dataVerification['email_verified_at'] = now();
+        }
+        if($contactType === ContactType::PHONE && is_null($this->phone_verified_at)){
+            $dataVerification['phone_verified_at'] = now();
+        }
+
+        $this->forceFill($dataVerification)->save();
     }
 }

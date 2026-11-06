@@ -2,7 +2,6 @@
 
 namespace Modules\Auth\Services;
 
-use Exception;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -10,6 +9,7 @@ use Modules\Auth\Emails\VerificationCode;
 use Modules\Auth\Enums\ContactType;
 use Modules\Auth\Enums\VerificationActionType;
 use Modules\Auth\Http\Requests\SendVerificationRequest;
+use Modules\Auth\Http\Requests\VerifyVerificationRequest;
 use Throwable;
 
 class VerificationCodeService
@@ -29,11 +29,11 @@ class VerificationCodeService
         $code = random_int(100000, 999999);
 
         $cacheKey = $this->generateCacheKey($contact, $action, $contactType);
-        $expiredAt = now()->addMinutes($expiryMinutes)->format('Y-m-d H:i:s');
+        $expiredAt = now()->addMinutes($expiryMinutes);
         Cache::put($cacheKey, [
             'code' => $code,
-            'expired_at' => $expiredAt,
-        ], $expiredAt);
+            'expired_at' => $expiredAt->toDateTimeString(),
+        ], now()->addMinutes($expiryMinutes));
 
         return $code;
     }
@@ -58,7 +58,6 @@ class VerificationCodeService
                     'args' => [(string) $code],
                 ]
             );
-
 
             $sendSmsApiRequest->throw();
 
@@ -89,6 +88,60 @@ class VerificationCodeService
     {
         $cacheKey = $this->generateCacheKey($contact, $action, $contactType);
         Cache::forget($cacheKey);
+    }
+
+    public function verifyCode(string $contact, VerificationActionType $action, ContactType $contactType, string $code)
+    {
+        $cacheKey = $this->generateCacheKey($contact, $action, $contactType);
+        $cacheValue = Cache::get($cacheKey);
+
+        // If Using Database Chache Add This (&& now()->diffInSeconds($cacheValue['expired_at'])) If Using Redis we Dont Need this (&& now()->diffInSeconds($cacheValue['expired_at']))
+        if ($cacheValue && (string) $cacheValue['code'] === (string) $code) {
+            $this->forgetCode($contact, $action, $contactType);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public function createVerificationToken(VerifyVerificationRequest $request)
+    {
+        do {
+            $token = str()->random(60);
+        } while (Cache::has("verification:after_verify:token:$token"));
+
+        Cache::put("verification:after_verify:token:$token", [
+            'contact' => $request->input('contact'),
+            'action' => $request->action,
+            'contact_type' => $request->contactType,
+            'identifier' => hash('sha256',$request->userAgent() . ":" . $request->ip())
+        ], now()->addMinutes(10));
+
+        return $token;
+    }
+
+    public function getVerificationToken($token, array $contact, VerificationActionType $action,string $identifier): ?array
+    {
+        $cacheKey = "verification:after_verify:token:$token";
+        $tokenData = Cache::pull($cacheKey);
+
+        if (! $tokenData) {
+            return null;
+        }
+
+        $contact = $tokenData['contact_type'] === ContactType::EMAIL ? $contact['email'] : $contact['phone'];
+
+        if (
+        $contact === $tokenData['contact'] &&
+        $action->value === $tokenData['action']->value &&
+        $tokenData['identifier'] === $identifier
+        ) {
+            return $tokenData;
+        }
+
+        return null;
+
     }
 
     public function handle() {}

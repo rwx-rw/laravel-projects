@@ -3,6 +3,8 @@
 namespace Modules\User\Providers;
 
 use Illuminate\Console\Scheduling\Schedule;
+use Laravel\Sanctum\Sanctum;
+use Modules\User\Models\PersonalAccessToken;
 use Nwidart\Modules\Support\ModuleServiceProvider;
 
 class UserServiceProvider extends ModuleServiceProvider
@@ -43,4 +45,11 @@ class UserServiceProvider extends ModuleServiceProvider
     // {
     //     $schedule->command('inspire')->hourly();
     // }
+
+    public function boot(): void
+    {
+        parent::boot();
+
+        Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+    }
 }

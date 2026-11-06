@@ -5,6 +5,7 @@ namespace Modules\Auth\Http\Controllers;
 use Illuminate\Routing\Controller;
 use Modules\Auth\Enums\ContactType;
 use Modules\Auth\Http\Requests\SendVerificationRequest;
+use Modules\Auth\Http\Requests\VerifyVerificationRequest;
 use Modules\Auth\Services\VerificationCodeService;
 
 class VerificationController extends Controller
@@ -35,4 +36,11 @@ class VerificationController extends Controller
 
         return response()->json(__('auth::verification.failed_code_send'), 500);
     }
+
+    public function verifyCode(VerifyVerificationRequest $request){
+        $token = $this->verificationCodeService->createVerificationToken($request);
+
+        return $token;
+    }
 }
+ 

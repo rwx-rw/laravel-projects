@@ -52,11 +52,15 @@ class AuthServiceProvider extends ModuleServiceProvider
         parent::boot();
 
         RateLimiter::for('check-user', function (Request $request) {
-            return Limit::perMinutes(1,5)->by($request->ip());
+            return app()->isLocal() ? Limit::none() : Limit::perMinutes(1,5)->by($request->userAgent() . ":" . $request->ip());
         });
 
         RateLimiter::for('verification-code', function (Request $request) {
-            return app()->isLocal() ? Limit::none() : Limit::perMinutes(10,20)->by($request->ip());
+            return app()->isLocal() ? Limit::none() : Limit::perMinutes(10,20)->by($request->userAgent() . ":" . $request->ip());
+        });
+
+        RateLimiter::for('auth_user', function (Request $request) {
+            return app()->isLocal() ? Limit::none() : Limit::perMinutes(1,2)->by($request->userAgent() . ":" . $request->ip());
         });
     }
 }
