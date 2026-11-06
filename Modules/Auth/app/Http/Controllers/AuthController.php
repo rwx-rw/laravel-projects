@@ -5,8 +5,10 @@ namespace Modules\Auth\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
+use Modules\Auth\Actions\ForgotPassword;
 use Modules\Auth\Actions\RegisterUser;
 use Modules\Auth\Http\Requests\CheckUserRequest;
+use Modules\Auth\Http\Requests\ForgotPasswordRequest;
 use Modules\Auth\Http\Requests\LoginRequest;
 use Modules\Auth\Http\Requests\RegisterRequest;
 use Modules\User\Models\User;
@@ -65,5 +67,13 @@ class AuthController extends Controller
             true,
             true
         ));
+    }
+
+    public function forgotPassword(ForgotPasswordRequest $request){
+        $user = (new ForgotPassword)->handle($request);
+
+        return response()->json([
+            'message' => 'Password updated successfully',
+        ]);
     }
 }
