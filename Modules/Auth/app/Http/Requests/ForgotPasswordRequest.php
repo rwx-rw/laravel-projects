@@ -2,23 +2,18 @@
 
 namespace Modules\Auth\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Validator;
-use Modules\Auth\Enums\ContactType;
 use Modules\Auth\Enums\VerificationActionType;
-use Modules\Auth\Services\VerificationCodeService;
-use Modules\User\Models\User;
+use Modules\Auth\Http\Requests\Base\BaseAuthRequest;
 use Override;
 
-class ForgotPasswordRequest extends FormRequest
+class ForgotPasswordRequest extends BaseAuthRequest
 {
-    public ContactType $contactType;
-
     #[Override]
     public function prepareForValidation()
     {
-        $this->contactType = ContactType::detectContactType($this->input('contact') ?? '');
+        $this->prepareContactType();
+        $this->action = VerificationActionType::FORGOT_PASSWORD;
     }
 
     /**
@@ -50,23 +45,6 @@ class ForgotPasswordRequest extends FormRequest
         ];
     }
 
-    protected function getContactValidationRules(): array
-    {
-
-        if ($this->contactType === ContactType::EMAIL) {
-            return [
-                'email',
-                'exists:users,email',
-            ];
-        }
-
-        return [
-            'phone:mobile',
-            'exists:users,phone',
-        ];
-
-    }
-
     public function after(): array
     {
         return [
@@ -76,41 +54,12 @@ class ForgotPasswordRequest extends FormRequest
                 }
                 $validatedData = $this->validated();
 
-                $tokenData = (new VerificationCodeService)->getVerificationToken(
-                    $validatedData['token'],
-                    [
-                        'email' => $validatedData['contact'],
-                        'phone' => $validatedData['contact'],
-                    ],
-                    VerificationActionType::FORGOT_PASSWORD,
-                    hash('sha256', $this->userAgent().':'.$this->ip())
-                );
-
-                if (! $tokenData) {
-                    $validator->errors()->add('token', __('auth::verification.invalid_token'));
-
+                if(!$this->validateVerificationToken($validator,$validatedData,$this->action,$validatedData['contact'])){
                     return;
                 }
 
-                $user = User::where($this->contactType->value, $validatedData['contact'])->first();
-
-                if (! $user) {
-                    $validator->errors()->add('contact', __('auth::validation.contact.not_found'));
-
-                    return;
-                }
-
-                $user->verifiedContact($this->contactType);
-                Auth::onceUsingId($user->id);
+                $this->validateAndAuthenticateUser($validator,$validatedData);
             },
         ];
-    }
-
-    /**
-     * Determine if the user is authorized to make this request.
-     */
-    public function authorize(): bool
-    {
-        return true;
     }
 }

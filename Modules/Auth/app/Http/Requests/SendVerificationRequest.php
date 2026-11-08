@@ -2,25 +2,21 @@
 
 namespace Modules\Auth\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 use Illuminate\Validation\Validator;
-use Modules\Auth\Enums\ContactType;
 use Modules\Auth\Enums\VerificationActionType;
-use Modules\Auth\Services\VerificationCodeService;
+use Modules\Auth\Http\Requests\Base\BaseAuthRequest;
 use Override;
 
-class SendVerificationRequest extends FormRequest
+class SendVerificationRequest extends BaseAuthRequest
 {
-    public ContactType $contactType;
-    public VerificationActionType $action;
+
 
     #[Override]
     public function prepareForValidation()
     {
-        $this->contactType = ContactType::detectContactType($this->input('contact') ?? '');
-        $this->action = VerificationActionType::tryFrom($this->input('action') ?? '');
+        $this->prepareContactType();
+        $this->prepareAction();
     }
 
     /**
@@ -44,29 +40,6 @@ class SendVerificationRequest extends FormRequest
         ];
     }
 
-    protected function getContactValidationRules(): array
-    {
-        $verificationAction = $this->action;
-
-        if (! $verificationAction) {
-            return [];
-        }
-
-        if ($this->contactType === ContactType::EMAIL) {
-            return [
-                'email:rfc,dns',
-                Rule::when($verificationAction->isContactNeedToBeUnique(), ['unique:users,email']),
-                Rule::when($verificationAction->isContactNeedToBeExists(), ['exists:users,email']),
-            ];
-        }
-
-        return [
-            'phone:mobile',
-            Rule::when($verificationAction->isContactNeedToBeUnique(), ['unique:users,phone']),
-            Rule::when($verificationAction->isContactNeedToBeExists(), ['exists:users,phone']),
-        ];
-
-    }
 
     public function after(): array
     {
@@ -81,20 +54,9 @@ class SendVerificationRequest extends FormRequest
                 $action = $this->action;
                 $contactType = $this->contactType;
 
-                $retryTime = (new VerificationCodeService)->getRetryTime($contact, $action, $contactType);
-
-                if ($retryTime) {
-                    $validator->errors()->add('contact', __('auth::validation.contact.retry_time', ['retry_time' => $retryTime]));
-                }
+                $this->checkRetryTime($validator,$this->validated(),$this->action,$this->contactType);
             },
         ];
     }
 
-    /**
-     * Determine if the user is authorized to make this request.
-     */
-    public function authorize(): bool
-    {
-        return true;
-    }
 }

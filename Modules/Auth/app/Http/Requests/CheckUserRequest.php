@@ -2,9 +2,9 @@
 
 namespace Modules\Auth\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
+use Modules\Auth\Http\Requests\Base\BaseAuthRequest;
 
-class CheckUserRequest extends FormRequest
+class CheckUserRequest extends BaseAuthRequest
 {
     /**
      * Get the validation rules that apply to the request.
@@ -38,13 +38,5 @@ class CheckUserRequest extends FormRequest
                 },
             ],
         ];
-    }
-
-    /**
-     * Determine if the user is authorized to make this request.
-     */
-    public function authorize(): bool
-    {
-        return true;
     }
 }

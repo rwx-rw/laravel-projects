@@ -3,7 +3,6 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Auth\Http\Controllers\AuthController;
 use Modules\Auth\Http\Controllers\VerificationController;
-use Modules\User\Http\Controllers\UserController;
 
 Route::middleware([])->prefix('v1/auth')->group(function () {
     Route::post('check-user', [AuthController::class, 'checkUser'])->name('check-user')->middleware('throttle:check-user');
