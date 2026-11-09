@@ -10,11 +10,14 @@ use Override;
 
 class VerifyVerificationRequest extends BaseAuthRequest
 {
+    public string $identifier;
+
     #[Override]
     public function prepareForValidation()
     {
-        $this->prepareContactType();   
+        $this->prepareContactType();
         $this->prepareAction();
+        $this->identifier = hash('sha256', $this->userAgent().':'.$this->ip());
     }
 
     /**
@@ -57,7 +60,7 @@ class VerifyVerificationRequest extends BaseAuthRequest
                 $action = $this->action;
                 $contactType = $this->contactType;
 
-                $this->validateVerificationCode($validator,$this->validated(),$this->action,$this->contactType);
+                $this->validateVerificationCode($validator, $this->validated(), $this->action, $this->contactType);
             },
         ];
     }

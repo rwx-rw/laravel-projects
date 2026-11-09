@@ -14,37 +14,54 @@ use Throwable;
 
 class VerificationCodeService
 {
-    public function generateCacheKey(string $contact, VerificationActionType $action, ContactType $contactType)
-    {
-        $contact = hash('sha256', "{$action->value}:{$contactType->value}:{$contact}");
+    private const TOKEN_EXPIRY_MINUTES = 10;
 
-        return "verification:$contact";
+    private const TOKEN_LENGTH = 100;
+
+    private const CODE_MIN = 100000;
+
+    private const CODE_MAX = 999999;
+
+    private const EMAIL_EXPIRY_MINUTS = 5;
+
+    private const SMS_EXPIRY_MINUTS = 1;
+
+    private TokenStorageService $tokenService;
+
+    private CodeStorageService $codeService;
+
+    public function __construct()
+    {
+        $this->tokenService = app(TokenStorageService::class);
+        $this->codeService = app(CodeStorageService::class);
+    }
+
+    public function createVerificationToken(VerifyVerificationRequest $request)
+    {
+        do {
+            $token = str()->random(self::TOKEN_LENGTH);
+        } while ($this->tokenService->has($token));
+
+        $this->tokenService->save($token, $request, self::TOKEN_EXPIRY_MINUTES);
+
+        return $token;
     }
 
     public function generateCode(string $contact, VerificationActionType $action, ContactType $contactType, ?int $expiryMinutes = null)
     {
-        if ($expiryMinutes === null) {
-            $expiryMinutes = $contactType === ContactType::EMAIL ? 5 : 1;
-        }
-        $code = random_int(100000, 999999);
+        $expiryMinutes = $expiryMinutes ?? $this->getDefaultExpiryMinutes($contactType);
 
-        $cacheKey = $this->generateCacheKey($contact, $action, $contactType);
-        $expiredAt = now()->addMinutes($expiryMinutes);
-        Cache::put($cacheKey, [
-            'code' => $code,
-            'expired_at' => $expiredAt->toDateTimeString(),
-        ], now()->addMinutes($expiryMinutes));
+        $code = random_int(self::CODE_MIN, self::CODE_MAX);
+
+        $this->codeService->save($contact, $action, $contactType, $code, now()->addMinutes($expiryMinutes));
 
         return $code;
     }
 
     public function getRetryTime(string $contact, VerificationActionType $action, ContactType $contactType): ?int
     {
-        $cacheKey = $this->generateCacheKey($contact, $action, $contactType);
-
-        $cacheValue = Cache::get($cacheKey);
-
-        return $cacheValue && now()->diffInSeconds($cacheValue['expired_at']) > 0 ? now()->diffInSeconds($cacheValue['expired_at']) : null;
+        $codeData = $this->codeService->get($contact, $action, $contactType);
+        return ( $codeData && now()->isAfter($codeData['expired_at']) ) ? now()->diffInSeconds($codeData['expired_at']) : null;
     }
 
     public function sendCodeAsSms(SendVerificationRequest $request, string $code): bool
@@ -63,7 +80,7 @@ class VerificationCodeService
 
             return $sendSmsApiRequest->successful();
         } catch (Throwable $th) {
-            $this->forgetCode($request->input('contact'), $request->action, $request->contactType);
+            $this->codeService->forget($request->input('contact'), $request->action, $request->contactType);
 
             return false;
         }
@@ -75,7 +92,7 @@ class VerificationCodeService
         try {
             Mail::to($request->input('contact'))->send(new VerificationCode($code));
         } catch (Throwable $th) {
-            $this->forgetCode($request->input('contact'), $request->action, $request->contactType);
+            $this->codeService->forget($request->input('contact'), $request->action, $request->contactType);
 
             return false;
         }
@@ -86,18 +103,16 @@ class VerificationCodeService
 
     public function forgetCode(string $contact, VerificationActionType $action, ContactType $contactType)
     {
-        $cacheKey = $this->generateCacheKey($contact, $action, $contactType);
-        Cache::forget($cacheKey);
+        $this->codeService->forget($contact, $action, $contactType);
     }
 
     public function verifyCode(string $contact, VerificationActionType $action, ContactType $contactType, string $code)
     {
-        $cacheKey = $this->generateCacheKey($contact, $action, $contactType);
-        $cacheValue = Cache::get($cacheKey);
+        $cacheData = $this->codeService->get($contact,$action,$contactType);
 
         // If Using Database Chache Add This (&& now()->diffInSeconds($cacheValue['expired_at'])) If Using Redis we Dont Need this (&& now()->diffInSeconds($cacheValue['expired_at']))
-        if ($cacheValue && (string) $cacheValue['code'] === (string) $code) {
-            $this->forgetCode($contact, $action, $contactType);
+        if ($cacheData && (string) $cacheData['code'] === (string) $code) {
+            $this->codeService->forget($contact, $action, $contactType);
 
             return true;
         }
@@ -105,26 +120,9 @@ class VerificationCodeService
         return false;
     }
 
-    public function createVerificationToken(VerifyVerificationRequest $request)
+    public function getVerificationToken($token, array $contact, VerificationActionType $action, string $identifier): ?array
     {
-        do {
-            $token = str()->random(60);
-        } while (Cache::has("verification:after_verify:token:$token"));
-
-        Cache::put("verification:after_verify:token:$token", [
-            'contact' => $request->input('contact'),
-            'action' => $request->action,
-            'contact_type' => $request->contactType,
-            'identifier' => hash('sha256',$request->userAgent() . ":" . $request->ip())
-        ], now()->addMinutes(10));
-
-        return $token;
-    }
-
-    public function getVerificationToken($token, array $contact, VerificationActionType $action,string $identifier): ?array
-    {
-        $cacheKey = "verification:after_verify:token:$token";
-        $tokenData = Cache::pull($cacheKey);
+        $tokenData = $this->tokenService->get($token);
 
         if (! $tokenData) {
             return null;
@@ -133,9 +131,9 @@ class VerificationCodeService
         $contact = $tokenData['contact_type'] === ContactType::EMAIL ? $contact['email'] : $contact['phone'];
 
         if (
-        $contact === $tokenData['contact'] &&
-        $action->value === $tokenData['action']->value &&
-        $tokenData['identifier'] === $identifier
+            $contact === $tokenData['contact'] &&
+            $action->value === $tokenData['action']->value &&
+            $tokenData['identifier'] === $identifier
         ) {
             return $tokenData;
         }
@@ -144,5 +142,11 @@ class VerificationCodeService
 
     }
 
-    public function handle() {}
+    private function getDefaultExpiryMinutes(ContactType $contactType)
+    {
+        return match($contactType){
+            ContactType::EMAIL => self::EMAIL_EXPIRY_MINUTS,
+            ContactType::PHONE => self::SMS_EXPIRY_MINUTS
+        };
+    }
 }
