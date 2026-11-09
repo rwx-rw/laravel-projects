@@ -2,18 +2,19 @@
 
 namespace Modules\Auth\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Crypt;
+use Modules\Auth\Actions\CreateUserToken;
 use Modules\Auth\Actions\ForgotPassword;
 use Modules\Auth\Actions\RegisterUser;
 use Modules\Auth\Http\Requests\CheckUserRequest;
 use Modules\Auth\Http\Requests\ForgotPasswordRequest;
 use Modules\Auth\Http\Requests\LoginRequest;
 use Modules\Auth\Http\Requests\RegisterRequest;
+use Modules\Base\Http\Controllers\ApiController;
 use Modules\User\Models\User;
+use Throwable;
 
-class AuthController extends Controller
+class AuthController extends ApiController
 {
     public function checkUser(CheckUserRequest $request)
     {
@@ -22,25 +23,21 @@ class AuthController extends Controller
         $user = User::where('email', $contact)->orWhere('phone', $contact)->first();
 
         if ($user) {
-            return response()->json('user exists', 200);
+            return $this->successResponse('user exists.');
         }
 
-        return response()->json('user not found', 404);
+        return $this->errorResponse('user not exists.', code: 404);
     }
 
     public function register(RegisterRequest $request)
     {
         $user = (new RegisterUser)->handle($request);
 
-        $token = $user->createToken('x_web_token', expiresAt: now()->addDays(30))->plainTextToken;
+        $token = (new CreateUserToken)->handle($user, 'x_web_token');
 
-        $encryptedToken = Crypt::encryptString($token);
-        
-        return response()->json([
-            'token' => $encryptedToken,
-        ])->withCookie(cookie(
+        return $this->successResponse(data: ['token' => $token])->withCookie(cookie(
             'x_web_token',
-            $encryptedToken,
+            $token,
             60 * 24 * 30,
             '/',
             config('session.domain'),
@@ -49,18 +46,15 @@ class AuthController extends Controller
         ));
     }
 
-    public function login(LoginRequest $request){
+    public function login(LoginRequest $request)
+    {
         $user = Auth::user();
 
-        $token = $user->createToken('x_web_token', expiresAt: now()->addDays(30))->plainTextToken;
+        $token = (new CreateUserToken)->handle($user, 'x_web_token');
 
-        $encryptedToken = Crypt::encryptString($token);
-        
-                return response()->json([
-            'token' => $encryptedToken,
-        ])->withCookie(cookie(
+        return $this->successResponse(data: ['token' => $token])->withCookie(cookie(
             'x_web_token',
-            $encryptedToken,
+            $token,
             60 * 24 * 30,
             '/',
             config('session.domain'),
@@ -69,11 +63,13 @@ class AuthController extends Controller
         ));
     }
 
-    public function forgotPassword(ForgotPasswordRequest $request){
-        $user = (new ForgotPassword)->handle($request);
-
-        return response()->json([
-            'message' => 'Password updated successfully',
-        ]);
+    public function forgotPassword(ForgotPasswordRequest $request)
+    {
+        try {
+            (new ForgotPassword)->handle($request);
+        } catch (Throwable $th) {
+            return $this->errorResponse('failed to reset password',code: 500);
+        }
+        return $this->successResponse('Password updated successfully');
     }
 }

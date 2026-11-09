@@ -2,13 +2,13 @@
 
 namespace Modules\Auth\Http\Controllers;
 
-use Illuminate\Routing\Controller;
 use Modules\Auth\Enums\ContactType;
 use Modules\Auth\Http\Requests\SendVerificationRequest;
 use Modules\Auth\Http\Requests\VerifyVerificationRequest;
 use Modules\Auth\Services\VerificationCodeService;
+use Modules\Base\Http\Controllers\ApiController;
 
-class VerificationController extends Controller
+class VerificationController extends ApiController
 {
     public function __construct(private VerificationCodeService $verificationCodeService) {}
 
@@ -20,27 +20,27 @@ class VerificationController extends Controller
             contactType: $request->contactType
         );
 
-        $responseStatus = false;
+        if (! $this->sendCodeByContactType($request, $code)) {
+            return $this->errorResponse(null, ['contact' => [__('auth::verification.failed_code_send')]], code: 500);
 
-        if ($request->contactType === ContactType::EMAIL) {
-            $responseStatus = $this->verificationCodeService->sendCodeAsMail($request,$code);
         }
 
-        if ($request->contactType === ContactType::PHONE) {
-            $responseStatus = $this->verificationCodeService->sendCodeAsSms($request, $code);
-        }
+        return $this->successResponse(__('auth::verification.success_code_send'));
 
-        if ($responseStatus) {
-            return response()->json(__('auth::verification.success_code_send'));
-        }
-
-        return response()->json(__('auth::verification.failed_code_send'), 500);
     }
 
-    public function verifyCode(VerifyVerificationRequest $request){
+    public function verifyCode(VerifyVerificationRequest $request)
+    {
         $token = $this->verificationCodeService->createVerificationToken($request);
 
-        return $token;
+        return $this->successResponse(data: ['token' => $token]);
+    }
+
+    private function sendCodeByContactType(SendVerificationRequest $request, string $code)
+    {
+        return match ($request->contactType) {
+            ContactType::EMAIL => $this->verificationCodeService->sendCodeAsMail($request, $code),
+            ContactType::PHONE => $this->verificationCodeService->sendCodeAsSms($request, $code)
+        };
     }
 }
- 
