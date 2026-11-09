@@ -60,8 +60,9 @@ class VerificationCodeService
 
     public function getRetryTime(string $contact, VerificationActionType $action, ContactType $contactType): ?int
     {
-        $codeData = $this->codeService->get($contact, $action, $contactType);
-        return ( $codeData && now()->isAfter($codeData['expired_at']) ) ? now()->diffInSeconds($codeData['expired_at']) : null;
+        $codeData = $this->codeService->softGet($contact, $action, $contactType);
+
+        return ( $codeData && now()->isBefore($codeData['expired_at']) ) ? now()->diffInSeconds($codeData['expired_at']) : null;
     }
 
     public function sendCodeAsSms(SendVerificationRequest $request, string $code): bool

@@ -33,6 +33,11 @@ class CodeStorageService
         return Cache::pull($this->getKey($contact,$action,$contactType));
     }
 
+    public function softGet(string $contact, VerificationActionType $action, ContactType $contactType)
+    {
+        return Cache::get($this->getKey($contact,$action,$contactType));
+    }
+
     public function forget(string $contact, VerificationActionType $action, ContactType $contactType){
         Cache::forget($this->getKey($contact,$action,$contactType));
     }
