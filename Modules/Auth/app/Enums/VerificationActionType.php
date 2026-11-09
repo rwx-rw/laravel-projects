@@ -9,12 +9,14 @@ enum VerificationActionType : string {
 
     case FORGOT_PASSWORD = 'forgot_password';
 
+    case VERIFY = 'verify';
+
 
     public function isContactNeedToBeUnique(): bool {
         return in_array($this,[self::REGISTER]);
     }
 
     public function isContactNeedToBeExists(): bool {
-        return in_array($this,[self::LOGIN,self::FORGOT_PASSWORD]);
+        return in_array($this,[self::LOGIN,self::FORGOT_PASSWORD,self::VERIFY]);
     }
 }
