@@ -2,6 +2,7 @@
 
 namespace Modules\Auth\Http\Requests;
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\Enum;
 use Illuminate\Validation\Validator;
 use Modules\Auth\Enums\VerificationActionType;
@@ -18,6 +19,16 @@ class VerifyVerificationRequest extends BaseAuthRequest
         $this->prepareContactType();
         $this->prepareAction();
         $this->identifier = hash('sha256', $this->userAgent().':'.$this->ip());
+    }
+
+    #[Override]
+    public function authorize(): bool
+    {
+        if ($this->action === VerificationActionType::CHANGE_INFO && ! Auth::guard('sanctum')->check()) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

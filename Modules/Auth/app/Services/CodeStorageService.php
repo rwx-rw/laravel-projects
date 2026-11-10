@@ -3,6 +3,7 @@
 namespace Modules\Auth\Services;
 
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Modules\Auth\Enums\ContactType;
 use Modules\Auth\Enums\VerificationActionType;
@@ -25,6 +26,7 @@ class CodeStorageService
         Cache::put($this->getKey($contact,$action,$contactType), [
             'code' => $code,
             'expired_at' => $expiredAt->toDateTimeString(),
+            'user_id' => Auth::guard('sanctum')->id()
         ], $expiredAt);
     }
 

@@ -2,6 +2,7 @@
 
 namespace Modules\Auth\Services;
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -110,9 +111,11 @@ class VerificationCodeService
     public function verifyCode(string $contact, VerificationActionType $action, ContactType $contactType, string $code)
     {
         $cacheData = $this->codeService->get($contact,$action,$contactType);
-
+        
         // If Using Database Chache Add This (&& now()->diffInSeconds($cacheValue['expired_at'])) If Using Redis we Dont Need this (&& now()->diffInSeconds($cacheValue['expired_at']))
-        if ($cacheData && (string) $cacheData['code'] === (string) $code) {
+        if ($cacheData && (string) $cacheData['code'] === (string) $code &&
+        ($action === VerificationActionType::CHANGE_INFO ? (isset($cacheData['user_id']) && $cacheData['user_id'] === Auth::guard('sanctum')->id() ): true)
+        ) {
             $this->codeService->forget($contact, $action, $contactType);
 
             return true;

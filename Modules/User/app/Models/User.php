@@ -54,4 +54,11 @@ class User extends Authenticatable
             ContactType::PHONE->value => $this->phone_verified_at,
         ])->filter(fn ($value) => is_null($value))->keys();
     }
+
+    public function changeContact(ContactType $contactType,string $contact){
+        $this->forceFill([
+            $contactType->value => $contact,
+            $contactType->value. '_verified_at' => now()
+        ])->save();
+    }
 }

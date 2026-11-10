@@ -36,6 +36,9 @@ class VerificationController extends ApiController
         if ($request->action === VerificationActionType::VERIFY) {
             return $this->makeVerifyUserContact($request);
         }
+        if($request->action === VerificationActionType::CHANGE_INFO){
+            return $this->makeChangeInfoContact($request);
+        }
         $token = $this->verificationCodeService->createVerificationToken($request);
 
         return $this->successResponse(data: ['token' => $token]);
@@ -51,13 +54,16 @@ class VerificationController extends ApiController
 
     private function makeVerifyUserContact(VerifyVerificationRequest $request)
     {
-        if (! $user = Auth::guard('sanctum')->user()) {
-            return $this->errorResponse(errors: [
-                'contact' => ['user not found'],
-            ], code: 404);
-        }
+        $user = Auth::guard('sanctum')->user();
+
         $user->verifiedContact($request->contactType);
 
         return $this->successResponse('contact verified');
+    }
+
+    private function makeChangeInfoContact(VerifyVerificationRequest $request){
+        $user = Auth::guard('sanctum')->user();
+        $user->changeContact($request->contactType,$request->input('contact'));
+        return $this->successResponse('contact updated successfuly');
     }
 }
