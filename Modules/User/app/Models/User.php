@@ -61,4 +61,8 @@ class User extends Authenticatable
             $contactType->value. '_verified_at' => now()
         ])->save();
     }
+
+    public function identifierFromRequest(){
+        return hash('sha256',request()->userAgent() . ':' . request()->ip() . ':' . $this->id);
+    }
 }
