@@ -9,8 +9,8 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Modules\Base\Notification\Channels\SmsChannel;
 use Modules\TelegramBot\Notifications\Channels\TelegramChannel;
 
-class WelcomeMessage extends Notification
-// class WelcomeMessage extends Notification implements ShouldQueue
+// class WelcomeMessage extends Notification
+class WelcomeMessage extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -24,8 +24,8 @@ class WelcomeMessage extends Notification
      */
     public function via($notifiable): array
     {
-        return [TelegramChannel::class];
-        // return ['mail',SmsChannel::class];
+        // return [TelegramChannel::class];
+        return ['mail',SmsChannel::class,TelegramChannel::class];
     }
 
     /**
