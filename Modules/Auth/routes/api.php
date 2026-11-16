@@ -3,6 +3,13 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Auth\Http\Controllers\AuthController;
 use Modules\Auth\Http\Controllers\VerificationController;
+use Modules\Auth\Notifications\WelcomeMessage;
+use Modules\User\Models\User;
+
+Route::get('/test',function(){
+    $user = User::find(7);
+    $user->notify((new WelcomeMessage())->delay(now()->addSecond(10)));
+});
 
 Route::middleware([])->prefix('v1/auth')->group(function () {
     Route::post('check-user', [AuthController::class, 'checkUser'])->name('check-user')->middleware('throttle:check-user');
