@@ -4,6 +4,7 @@ namespace Modules\User\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use DefStudio\Telegraph\Models\TelegraphChat;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -31,6 +32,11 @@ class User extends Authenticatable
             'phone_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function telegramChat()
+    {
+        return $this->hasOne(TelegraphChat::class, 'id', 'telegram_chat_id');
     }
 
     public function verifiedContact(ContactType $contactType)
@@ -64,5 +70,11 @@ class User extends Authenticatable
 
     public function identifierFromRequest(){
         return hash('sha256',request()->userAgent() . ':' . request()->ip() . ':' . $this->id);
+    }
+
+    public function makeTelegramBotRegisterCommand(): string
+    {
+
+        return '/login ' . $this->id;
     }
 }

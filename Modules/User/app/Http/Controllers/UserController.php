@@ -5,6 +5,7 @@ namespace Modules\User\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Modules\User\Transformers\UserResource;
 
 class UserController extends Controller
 {
@@ -13,7 +14,7 @@ class UserController extends Controller
     {
         $user = Auth::user();
         
-        return response()->json($user);
+        return new UserResource($user);
     }
     /**
      * Display a listing of the resource.
