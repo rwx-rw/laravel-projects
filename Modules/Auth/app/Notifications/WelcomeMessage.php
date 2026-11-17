@@ -6,27 +6,27 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Support\Facades\Auth;
 use Modules\Base\Notification\Channels\SmsChannel;
 use Modules\TelegramBot\Notifications\Channels\TelegramChannel;
+use Modules\User\Notifications\PreferenceAware;
+use Modules\User\Services\NotificationPereferenceService;
 
-// class WelcomeMessage extends Notification
-class WelcomeMessage extends Notification implements ShouldQueue
+class WelcomeMessage extends Notification
+// class WelcomeMessage extends Notification implements ShouldQueue
 {
     use Queueable;
+    use PreferenceAware;
+
+
+    protected string $type = "welcome_message";
+
+    protected ?array $forceChanels = [TelegramChannel::class];
 
     /**
      * Create a new notification instance.
      */
     public function __construct() {}
-
-    /**
-     * Get the notification's delivery channels.
-     */
-    public function via($notifiable): array
-    {
-        // return [TelegramChannel::class];
-        return ['mail',SmsChannel::class,TelegramChannel::class];
-    }
 
     /**
      * Get the mail representation of the notification.

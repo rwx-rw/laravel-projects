@@ -39,6 +39,11 @@ class User extends Authenticatable
         return $this->hasOne(TelegraphChat::class, 'id', 'telegram_chat_id');
     }
 
+    public function notificationPreference()
+    {
+        return $this->hasOne(UserNotificationPreference::class, 'user_id', 'id');
+    }
+
     public function verifiedContact(ContactType $contactType)
     {
         $dataVerification = [];
