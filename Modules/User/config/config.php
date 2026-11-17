@@ -22,6 +22,7 @@ return [
             'email' => 'mail',
             'sms' => SmsChannel::class,
             'telegram' => TelegramChannel::class,
+            'database' => 'database'
         ],
 
     ],

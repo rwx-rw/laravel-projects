@@ -5,13 +5,15 @@ use Modules\Auth\Http\Middleware\EnsureUserVerifiedMiddleware;
 use Modules\User\Http\Controllers\UserController;
 use Modules\Auth\Notifications\WelcomeMessage;
 use Modules\TelegramBot\Notifications\Channels\TelegramChannel;
+use Modules\User\Http\Controllers\NotificationController;
 use Modules\User\Http\Controllers\UserNotificationpreferenceController;
 use Modules\User\Models\User;
+use Modules\User\Notifications\PaymentPaidNotification;
 use Modules\User\Services\NotificationPereferenceService;
 
 Route::get('/test',function(){
     $user = User::find(7);
-    $user->notify((new WelcomeMessage()));
+    $user->notify((new PaymentPaidNotification()));
 
     // $service = new NotificationPereferenceService;
     // $result = $service->update(User::find(7),'welcome_message','telegram',true);
@@ -25,5 +27,7 @@ Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
     Route::prefix('profile')->group(function(){
         Route::get('notifications/preferences',[UserNotificationpreferenceController::class,'index'])->name('notifications_preferences');
         Route::patch('notifications/preferences',[UserNotificationpreferenceController::class,'update'])->name('notifications_preferences.update');
+        Route::get('notifications/unread',[NotificationController::class,'unread'])->name('notifications_unread');
+        Route::get('notifications/read',[NotificationController::class,'read'])->name('notifications_read');
     });
 });
