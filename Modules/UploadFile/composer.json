@@ -1,0 +1,31 @@
+{
+    "name": "nwidart/uploadfile",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {}
+        }
+    },
+    "autoload": {
+        "files": [
+            "app/helpers.php"
+        ],
+        "psr-4": {
+            "Modules\\UploadFile\\": "app/",
+            "Modules\\UploadFile\\Database\\Factories\\": "database/factories/",
+            "Modules\\UploadFile\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\UploadFile\\Tests\\": "tests/"
+        }
+    }
+}

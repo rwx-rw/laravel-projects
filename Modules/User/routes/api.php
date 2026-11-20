@@ -1,33 +1,30 @@
 <?php
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Modules\Auth\Http\Middleware\EnsureUserVerifiedMiddleware;
-use Modules\User\Http\Controllers\UserController;
-use Modules\Auth\Notifications\WelcomeMessage;
-use Modules\TelegramBot\Notifications\Channels\TelegramChannel;
+use Modules\UploadFile\Enums\DiskType;
+use Modules\UploadFile\Services\FileUploadService;
 use Modules\User\Http\Controllers\NotificationController;
+use Modules\User\Http\Controllers\UserController;
 use Modules\User\Http\Controllers\UserNotificationpreferenceController;
 use Modules\User\Models\User;
-use Modules\User\Notifications\PaymentPaidNotification;
-use Modules\User\Services\NotificationPereferenceService;
 
-Route::get('/test',function(){
-    $user = User::find(7);
-    $user->notify((new PaymentPaidNotification()));
+Route::post('/testsdfsdfsfdsf222', function (Request $request) {
+    // $file = FileUploadService::make(DiskType::PUBLIC, 'avatars')
+    //     ->upload($request->file('avatar'), 'USER-COVER.jpeg', User::find(7), false);
 
-    // $service = new NotificationPereferenceService;
-    // $result = $service->update(User::find(7),'welcome_message','telegram',true);
-    // $result = $service->allowedChannels($user,'welcome_message');
-    // dd($result);
+    $file = upload_file($request->file('avatar'),['disk' => DiskType::LOCAL,'directory' => 'images']);
+    return $file;
 });
 
 Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
-    Route::get('auth/me',[UserController::class,'me'])->name('me')->middleware(EnsureUserVerifiedMiddleware::class);
+    Route::get('auth/me', [UserController::class, 'me'])->name('me')->middleware(EnsureUserVerifiedMiddleware::class);
 
-    Route::prefix('profile')->group(function(){
-        Route::get('notifications/preferences',[UserNotificationpreferenceController::class,'index'])->name('notifications_preferences');
-        Route::patch('notifications/preferences',[UserNotificationpreferenceController::class,'update'])->name('notifications_preferences.update');
-        Route::get('notifications/unread',[NotificationController::class,'unread'])->name('notifications_unread');
-        Route::get('notifications/read',[NotificationController::class,'read'])->name('notifications_read');
+    Route::prefix('profile')->group(function () {
+        Route::get('notifications/preferences', [UserNotificationpreferenceController::class, 'index'])->name('notifications_preferences');
+        Route::patch('notifications/preferences', [UserNotificationpreferenceController::class, 'update'])->name('notifications_preferences.update');
+        Route::get('notifications/unread', [NotificationController::class, 'unread'])->name('notifications_unread');
+        Route::get('notifications/read', [NotificationController::class, 'read'])->name('notifications_read');
     });
 });
