@@ -11,17 +11,12 @@ use Modules\User\Http\Controllers\NotificationController;
 use Modules\User\Http\Controllers\UserController;
 use Modules\User\Http\Controllers\UserNotificationpreferenceController;
 
-Route::get('/testsdfsdfsfdsf222', function (Request $request) {
-    // $image = Image::decode($request->file('avatar'));
-    // dd();
-    // $png = $image->scale(height : 300)->encodeUsingFormat(Format::WEBP);
-    //     Storage::disk('public')->put(time() . '.jpg', $png);
+Route::post('/test', function (Request $request) {
+    $file = $request->file('avatar');
 
-    // $image = Image::decode(Storage::disk('public')->get('sgB8zG.jpg'))
-    //     ->scale(1000,800)->;
+    $result = Storage::disk('s3_public')->putFileAs('/avatars',$file,$file->getClientOriginalName());
 
-    // return response()->image($image, Format::WEBP, quality: 100);
-
+    return $result;
 });
 
 Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {
