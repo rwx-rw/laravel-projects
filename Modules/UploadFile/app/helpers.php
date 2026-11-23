@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
+use Modules\UploadFile\Enums\DiskType;
 use Modules\UploadFile\Models\File;
 use Modules\UploadFile\Services\FileUploadService;
 
@@ -11,8 +12,18 @@ if (! function_exists('upload_file')) {
         array $options,
         ?Model $relatedModel = null
     ): File {
-        return FileUploadService::make($options['disk'], $options['directory'])
-            ->upload($file, $options['filename'] ?? null, $relatedModel, $options['replaceExists'] ?? false);
+        return FileUploadService::make($options['disk'])
+            ->upload($file,$options['directory'], $options['filename'] ?? null, $relatedModel, $options['replaceExists'] ?? false);
+
+    }
+}
+
+if (! function_exists('delete_file')) {
+    function delete_file(
+        string|array $paths,
+        DiskType $disk
+    ): bool {
+        return FileUploadService::make($disk)->delete($paths);
 
     }
 }

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Facades\Storage;
 use Modules\UploadFile\Enums\DiskType;
 use Override;
 
@@ -40,5 +41,22 @@ class File extends Model
         return [
             'disk' => DiskType::class
         ];
+    }
+
+    #[Override]
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::deleting(function(File $file) : bool{
+            if(Storage::disk($file->disk->value)->exists($file->path)){
+                $deleted = Storage::disk($file->disk->value)->delete($file->path);
+                if(!$deleted){
+                    return false;
+                }
+                return true;
+            }
+            return true;
+        });
     }
 }

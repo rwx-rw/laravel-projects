@@ -11,20 +11,21 @@ use Modules\UploadFile\Models\File;
 
 class FileUploadService
 {
-    public function __construct(protected DiskType $disk, protected string $directory) {}
+    public function __construct(protected DiskType $disk) {}
 
-    public static function make(DiskType $disk, string $directory): FileUploadService
+    public static function make(DiskType $disk): FileUploadService
     {
-        return new self($disk, $directory);
+        return new self($disk);
     }
 
     public function upload(
         UploadedFile $file,
+        string $directory,
         ?string $filename = null,
         ?Model $relatedModel = null,
         bool $replaceExists = true): File
     {
-        [$filename,$path,$extension] = $this->prepareFile($file, $filename, $replaceExists);
+        [$filename,$path,$extension] = $this->prepareFile($file, $directory, $filename, $replaceExists);
 
         $builder = $this->resolveModelBuilder($relatedModel);
 
@@ -39,29 +40,29 @@ class FileUploadService
         ]);
     }
 
-    protected function prepareFile(UploadedFile $file, ?string $filename, bool $replaceExists)
+    protected function prepareFile(UploadedFile $file, string $directory, ?string $filename, bool $replaceExists)
     {
         $extension = $file->getClientOriginalExtension();
 
         if (empty($filename)) {
-            $path = $file->store($this->directory, ['disk' => $this->disk->value]);
+            $path = $file->store($directory, ['disk' => $this->disk->value]);
 
             return [pathinfo($path, PATHINFO_FILENAME), $path, $extension];
         }
 
         $basename = pathinfo($filename, PATHINFO_FILENAME);
         $filename = "{$basename}.{$extension}";
-        $path = "{$this->directory}/$filename";
+        $path = "{$directory}/$filename";
 
         if (Storage::disk($this->disk)->exists($path)) {
             if ($replaceExists) {
                 $this->delete($path);
             } else {
-                [$filename,$path] = $this->generateUniqueFileName($basename, $extension);
+                [$filename,$path] = $this->generateUniqueFileName($directory, $basename, $extension);
             }
         }
 
-        Storage::disk($this->disk)->putFileAs($this->directory, $file, $filename);
+        Storage::disk($this->disk)->putFileAs($directory, $file, $filename);
 
         return [$filename, $path, $extension];
     }
@@ -77,21 +78,19 @@ class FileUploadService
 
     public function delete(string|array $paths)
     {
-        $deleted = Storage::disk($this->disk)->delete($paths);
-        if ($deleted) {
-            File::where('disk', $this->disk)->whereIn('path', (array) $paths);
 
-            return true;
-        }
+        $files = File::where('disk', $this->disk)->whereIn('path', (array) $paths)->each(function (File $file) {
+            $file->delete();
+        });
 
-        return false;
+        return true;
     }
 
-    protected function generateUniqueFileName(string $basename, string $extension)
+    protected function generateUniqueFileName(string $directory, string $basename, string $extension)
     {
 
         $filename = "{$basename}-".str()->random(6).".{$extension}";
-        $path = "{$this->directory}/$filename";
+        $path = "{$directory}/$filename";
 
         return [$filename, $path];
     }

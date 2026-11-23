@@ -2,20 +2,26 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
+use Intervention\Image\Format;
+use Intervention\Image\Laravel\Facades\Image;
 use Modules\Auth\Http\Middleware\EnsureUserVerifiedMiddleware;
-use Modules\UploadFile\Enums\DiskType;
-use Modules\UploadFile\Services\FileUploadService;
+use Modules\UploadFile\Models\File;
 use Modules\User\Http\Controllers\NotificationController;
 use Modules\User\Http\Controllers\UserController;
 use Modules\User\Http\Controllers\UserNotificationpreferenceController;
-use Modules\User\Models\User;
 
-Route::post('/testsdfsdfsfdsf222', function (Request $request) {
-    // $file = FileUploadService::make(DiskType::PUBLIC, 'avatars')
-    //     ->upload($request->file('avatar'), 'USER-COVER.jpeg', User::find(7), false);
+Route::get('/testsdfsdfsfdsf222', function (Request $request) {
+    // $image = Image::decode($request->file('avatar'));
+    // dd();
+    // $png = $image->scale(height : 300)->encodeUsingFormat(Format::WEBP);
+    //     Storage::disk('public')->put(time() . '.jpg', $png);
 
-    $file = upload_file($request->file('avatar'),['disk' => DiskType::LOCAL,'directory' => 'images']);
-    return $file;
+    // $image = Image::decode(Storage::disk('public')->get('sgB8zG.jpg'))
+    //     ->scale(1000,800)->;
+
+    // return response()->image($image, Format::WEBP, quality: 100);
+
 });
 
 Route::middleware(['auth:sanctum'])->prefix('v1')->group(function () {

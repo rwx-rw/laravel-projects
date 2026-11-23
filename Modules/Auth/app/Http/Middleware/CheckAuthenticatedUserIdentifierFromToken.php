@@ -17,9 +17,9 @@ class CheckAuthenticatedUserIdentifierFromToken
             $user = Auth::guard('sanctum')->user();
             $currentToken = $user->currentAccessToken();
             $generateIdentifierFromRequest = $user->identifierFromRequest();
-
             if($currentToken->identifier !== $generateIdentifierFromRequest){
-                return response()->json(['message' => 'unauthonticated'],401);
+                $cookie = cookie()->forget('x_web_token');
+                return response()->json(['message' => 'unauthonticated'],401)->withCookie($cookie);
             }
         }
         return $next($request);
